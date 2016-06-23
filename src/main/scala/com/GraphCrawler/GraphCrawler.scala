@@ -17,9 +17,13 @@ object GraphCrawler {
     val adapter = new scala.xml.parsing.NoBindingFactoryAdapter
 
     def getLinks(url : String): scala.collection.immutable.Seq[String] = {
-      val source = new org.xml.sax.InputSource(url)
-      val tree = adapter.loadXML(source, parser)
-      tree \ "body" \\ "@href" filter {l => l.text.startsWith("http")} map {l2 => println(l2); l2.text}
+      try {
+        val source = new org.xml.sax.InputSource(url)
+        val tree = adapter.loadXML(source, parser)
+        tree \ "body" \\ "@href" filter {l => l.text.startsWith("http")} map {l2 => println(l2); l2.text}
+      } catch {
+        case e: javax.net.ssl.SSLHandshakeException => scala.collection.immutable.Seq[String]()
+      }
     }
 
     val startingLinks = getLinks(startingURL)
