@@ -14,15 +14,22 @@ object GraphCrawler {
 
     val parserFactory = new org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
     val parser = parserFactory.newSAXParser()
-    val source = new org.xml.sax.InputSource(startingURL)
     val adapter = new scala.xml.parsing.NoBindingFactoryAdapter
-    val tree = adapter.loadXML(source, parser)
 
-    val title = (tree \ "head" \ "title")(0).text
-    println("Page title: " + title)
+    def getLinks(url : String): scala.collection.immutable.Seq[String] = {
+      val source = new org.xml.sax.InputSource(url)
+      val tree = adapter.loadXML(source, parser)
+      if tree.size = 0 
+        tree
+      else
+        val tree = adapter.loadXML(source, parser)
+        tree \ "body" \\ "@href" map {l => println(l); l.text}
+    }
 
-    val links = tree \ "body" \\ "@href"
-  
+    val startingLinks = getLinks(startingURL)
+
+    val links = startingLinks.foldLeft(startingLinks)((a,b) => a ++ getLinks(b))
+
     links map println
 
   }
