@@ -19,18 +19,12 @@ object GraphCrawler {
     def getLinks(url : String): scala.collection.immutable.Seq[String] = {
       val source = new org.xml.sax.InputSource(url)
       val tree = adapter.loadXML(source, parser)
-      if tree.size = 0 
-        tree
-      else
-        val tree = adapter.loadXML(source, parser)
-        tree \ "body" \\ "@href" map {l => println(l); l.text}
+      tree \ "body" \\ "@href" filter {l => l.text.startsWith("http")} map {l2 => println(l2); l2.text}
     }
 
     val startingLinks = getLinks(startingURL)
 
     val links = startingLinks.foldLeft(startingLinks)((a,b) => a ++ getLinks(b))
-
-    links map println
 
   }
  }
