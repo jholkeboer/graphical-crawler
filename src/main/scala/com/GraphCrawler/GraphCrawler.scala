@@ -8,6 +8,17 @@ import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
 object GraphCrawler {
   def main(args: Array[String]): Unit = {
 
+    val recursionLimit = 25
+
+    // definition of data structures
+
+    // this structure stores a link as tuple of (url, title, links_on_page)
+    type Link = (String, String, scala.collection.immutable.Seq[String])
+
+    // this structure stores a list of all links and the current recursion level
+    type CrawlerResult = (List[Link], Int)
+
+
     val startingURL = "https://pure-chamber-37511.herokuapp.com"
 
     println("Crawling from " + startingURL)
@@ -26,9 +37,36 @@ object GraphCrawler {
       }
     }
 
-    val startingLinks = getLinks(startingURL)
+    def breadthFirstCrawl(next : String, level : Int): CrawlerResult = {
+      try {
+        println("Level " + level + " URL " + next)
+        val source = new org.xml.sax.InputSource(next)
+        val tree = adapter.loadXML(source, parser)
+        val title = (tree \\ "title")(0).text
+        val urls = tree \ "body" \\ "@href" filter {l => l.text.startsWith("http")} map {l2 => println(l2); l2.text}
+        val result_set = urls map {l => breadthFirstCrawl(l, level + 1)}
+        // val result : CrawlerResult = urls.foldLeft((List[Link](), level))((a,b) => (a._1 ++ breadthFirstCrawl(b, level)._1, level))
+        val result : CrawlerResult = result_set.foldLeft(new CrawlerResult(List[Link](), level))((a,b) => (a._1 ++ b._1, level + 1))
+        result
+      } catch {
+        case e: javax.net.ssl.SSLHandshakeException => new CrawlerResult(List[Link](), 0)
+      }
+    }
 
-    val links = startingLinks.foldLeft(startingLinks)((a,b) => a ++ getLinks(b))
+    // val startingLinks = getLinks(startingURL)
+
+    // val links = startingLinks.foldLeft(startingLinks)((a,b) => a ++ getLinks(b))
+    val source = new org.xml.sax.InputSource(startingURL)
+    val tree = adapter.loadXML(source, parser)
+    val startingTitle = (tree \\ "title")(0).text
+    val startingHREF = tree \ "body" \\ "@href" filter {l => l.text.startsWith("http")} map {l2 => println(l2); l2.text}
+    val startingLink : Link = (startingURL, startingTitle, startingHREF)
+
+    val results = startingHREF map {l => breadthFirstCrawl(l, 0)}
+
+    //val results : CrawlerResult = breadthFirstCrawl(startingURL, 0)
+
+    println(results)
 
   }
  }
