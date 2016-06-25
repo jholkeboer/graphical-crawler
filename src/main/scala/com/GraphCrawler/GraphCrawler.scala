@@ -27,16 +27,6 @@ object GraphCrawler {
     val parser = parserFactory.newSAXParser()
     val adapter = new scala.xml.parsing.NoBindingFactoryAdapter
 
-    def getLinks(url : String): scala.collection.immutable.Seq[String] = {
-      try {
-        val source = new org.xml.sax.InputSource(url)
-        val tree = adapter.loadXML(source, parser)
-        tree \ "body" \\ "@href" filter {l => l.text.startsWith("http")} map {l2 => println(l2); l2.text}
-      } catch {
-        case e: javax.net.ssl.SSLHandshakeException => scala.collection.immutable.Seq[String]()
-      }
-    }
-
     def breadthFirstCrawl(next : String, level : Int): CrawlerResult = {
       try {
         println("Level " + level + " URL " + next)
@@ -44,10 +34,14 @@ object GraphCrawler {
         val tree = adapter.loadXML(source, parser)
         val title = (tree \\ "title")(0).text
         val urls = tree \ "body" \\ "@href" filter {l => l.text.startsWith("http")} map {l2 => println(l2); l2.text}
-        val result_set = urls map {l => breadthFirstCrawl(l, level + 1)}
+        // val result_set = urls map {l => breadthFirstCrawl(l, level + 1)}
         // val result : CrawlerResult = urls.foldLeft((List[Link](), level))((a,b) => (a._1 ++ breadthFirstCrawl(b, level)._1, level))
-        val result : CrawlerResult = result_set.foldLeft(new CrawlerResult(List[Link](), level))((a,b) => (a._1 ++ b._1, level + 1))
-        result
+        if (level > 25)  
+          new CrawlerResult(List[Link](), level)
+        else {
+          val result_set = urls map {l => breadthFirstCrawl(l, level + 1)}
+          result_set.foldLeft(new CrawlerResult(List[Link](), level))((a,b) => (a._1 ++ b._1, level + 1))
+        }
       } catch {
         case e: javax.net.ssl.SSLHandshakeException => new CrawlerResult(List[Link](), 0)
       }
